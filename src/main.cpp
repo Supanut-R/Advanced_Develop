@@ -307,6 +307,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("Connected to WiFi");
+      Serial.println(ssid);
       Serial.print("IP Address: ");
       Serial.println(WiFi.localIP());
       String ipAddress = "Connected to WiFi\nIP:" + WiFi.localIP().toString();
