@@ -430,9 +430,9 @@ void loop() {
 
   //Press resetsw to reset wifi network to be default value
   if (digitalRead(resetsw) == HIGH) {
-    delay(1500);
+    delay(1000);
     if(digitalRead(resetsw == HIGH)){
-      delay(1500);
+      delay(1000);
       if(digitalRead(resetsw == HIGH)){
         delay(1000);
         if(digitalRead(resetsw)){
