@@ -29,10 +29,11 @@ String buff="";
 const char* apSSID = APSSID ;
 const char* apPassword = APPASSWORD ;
 
-// free broker test
-// MQTT Broker
-//const char *mqtt_server = "broker.mqtt.cool";
-//const int mqtt_port = 1883;
+//resetswitch for reseting wifi to be default value
+const unsigned long holdtime = 2000 ;
+bool buttonstate = LOW ;
+bool lastbuttonstate = LOW ;
+unsigned long buttonpresstime = 0 ;
 
 
 // HIVEMQ server >> Nay
@@ -429,19 +430,33 @@ void setup() {
 void loop() {
 
   //Press resetsw to reset wifi network to be default value
-  if (digitalRead(resetsw) == HIGH) {
-    delay(1000);
-    if(digitalRead(resetsw == HIGH)){
-      delay(1000);
-      if(digitalRead(resetsw == HIGH)){
-        delay(1000);
-        if(digitalRead(resetsw)){
-          Serial.println("Reset switch pressed, resetting WiFi configuration...");
-          resetWiFiConfig();
-        }
-      } 
-    } 
+  buttonstate = digitalRead(resetsw);
+
+  if(buttonstate == HIGH && lastbuttonstate == LOW){
+    buttonpresstime = millis();
   }
+
+  if(buttonstate == HIGH && (millis() - buttonpresstime >= holdtime)){
+     Serial.println("Reset switch pressed, resetting WiFi configuration...");
+     resetWiFiConfig();
+  }
+
+  lastbuttonstate = buttonstate;
+  
+  //Press resetsw to reset wifi network to be default value
+  // if (digitalRead(resetsw) == HIGH) {
+  //   delay(1000);
+  //   if(digitalRead(resetsw == HIGH)){
+  //     delay(1000);
+  //     if(digitalRead(resetsw == HIGH)){
+  //       delay(1000);
+  //       if(digitalRead(resetsw)){
+  //         Serial.println("Reset switch pressed, resetting WiFi configuration...");
+  //         resetWiFiConfig();
+  //       }
+  //     } 
+  //   } 
+  // }
 
   if (WiFi.status() != WL_CONNECTED) {
     setup_wifi();
