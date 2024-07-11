@@ -30,7 +30,7 @@ const char* apSSID = APSSID ;
 const char* apPassword = APPASSWORD ;
 
 //resetswitch for reseting wifi to be default value
-const unsigned long holdtime = 2000 ;
+const unsigned long holdtime = 3000 ;
 bool buttonstate = LOW ;
 bool lastbuttonstate = LOW ;
 unsigned long buttonpresstime = 0 ;
@@ -535,7 +535,7 @@ void loop() {
             delay(100); 
   }
 
-  delay(500);
+  //delay(500);
 
 }
 
