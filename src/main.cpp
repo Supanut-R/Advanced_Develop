@@ -176,6 +176,52 @@ KPpdzvvtTnOPlC7SQZSYmdunr3Bf9b77AiC/ZidstK36dRILKz7OA54=
 )EOF";
 
 
+// Try to conncect WiFi if There are SSID and Password.
+ void setup_wifi(){
+  if (ssid.length() > 0 && password.length() > 0) {
+    WiFi.begin(ssid.c_str(), password.c_str());
+    Serial.print("Connecting to WiFi");
+
+    unsigned long startAttemptTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 20000) {
+      delay(1000);
+      Serial.print(".");
+    }
+    Serial.println();
+
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Connected to WiFi");
+      Serial.println(ssid);
+      Serial.print("IP Address: ");
+      Serial.println(WiFi.localIP());
+      String ipAddress = "Connected to WiFi\nIP:" + WiFi.localIP().toString();
+    } else if (!result && ssid.length() > 0 && password.length() > 0 ) {
+        Serial.println("Cannot connect to WiFi, trying to connect");
+    } else{
+        Serial.println("Failed to connect to WiFi, starting AP mode...");
+    }
+  }
+ }
+
+//If disconnected WiFi
+ void accesspoint(){
+    if (WiFi.status() != WL_CONNECTED) {
+    // Turn ESP32 to be Access Point
+    result = WiFi.softAP(apSSID, apPassword);
+    if(result) {
+      Serial.println("Access Point Started");
+    } else {
+      Serial.println("Access Point Failed");
+    }
+
+    //Check IP Address of Access Point
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(IP);
+    String apIpAddress = "AP IP address: " + IP.toString();
+  }
+}
+
 //Function for save SSID and Password of WiFi to store them in SOIFFS
 void saveWiFiConfig(String ssid, String password) {
   File file = SPIFFS.open("/wifi_config.txt", FILE_WRITE);
@@ -243,6 +289,9 @@ void reconnect() {
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       delay(5000);
+      if (client.state() ==  -2){
+        resetWiFiConfig();
+      }
     }
   }
 }
@@ -292,55 +341,6 @@ void callback(char *topic, byte *payload, unsigned int length) {
     }
 }
 
-
-// Try to conncect WiFi if There are SSID and Password.
- void setup_wifi(){
-  if (ssid.length() > 0 && password.length() > 0) {
-    WiFi.begin(ssid.c_str(), password.c_str());
-    Serial.print("Connecting to WiFi");
-
-    unsigned long startAttemptTime = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 20000) {
-      delay(1000);
-      Serial.print(".");
-    }
-    Serial.println();
-
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("Connected to WiFi");
-      Serial.println(ssid);
-      Serial.print("IP Address: ");
-      Serial.println(WiFi.localIP());
-      String ipAddress = "Connected to WiFi\nIP:" + WiFi.localIP().toString();
-    } else if (!result && ssid.length() > 0 && password.length() > 0 ) {
-        Serial.println("Cannot connect to WiFi, trying to connect");
-    } else{
-        Serial.println("Failed to connect to WiFi, starting AP mode...");
-    }
-  }
- }
-
-//If disconnected WiFi
- void accesspoint(){
-    if (WiFi.status() != WL_CONNECTED) {
-    // Turn ESP32 to be Access Point
-    result = WiFi.softAP(apSSID, apPassword);
-    if(result) {
-      Serial.println("Access Point Started");
-    } else {
-      Serial.println("Access Point Failed");
-    }
-
-    //Check IP Address of Access Point
-    IPAddress IP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(IP);
-    String apIpAddress = "AP IP address: " + IP.toString();
-  }
-
-
-  }
-
   void blinky() {
   digitalWrite(2 , HIGH);
   delay(500);
@@ -349,6 +349,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   digitalWrite(2 , HIGH);
   delay(500);
 }
+
 
 //setup()
 void setup() {
@@ -415,13 +416,12 @@ void setup() {
   client.setCallback(callback); // set trigger function when topic is published
   client.subscribe(Topic);
 
-  /*
+  
   Serial.print("Current state: ");
   Serial.println(state);
   blinky();
   blinky();
   blinky();
-  */
 
 }
 
@@ -443,20 +443,6 @@ void loop() {
 
   lastbuttonstate = buttonstate;
   
-  //Press resetsw to reset wifi network to be default value
-  // if (digitalRead(resetsw) == HIGH) {
-  //   delay(1000);
-  //   if(digitalRead(resetsw == HIGH)){
-  //     delay(1000);
-  //     if(digitalRead(resetsw == HIGH)){
-  //       delay(1000);
-  //       if(digitalRead(resetsw)){
-  //         Serial.println("Reset switch pressed, resetting WiFi configuration...");
-  //         resetWiFiConfig();
-  //       }
-  //     } 
-  //   } 
-  // }
 
   if (WiFi.status() != WL_CONNECTED) {
     setup_wifi();
@@ -511,7 +497,7 @@ void loop() {
           msg_device.trim();
           Serial.println(msg_device);
           client.publish("oasis1/id1/itsd1/temp", msg_device.c_str()); // c_str = C-Style String
-          blinky();// Why blink after publishing
+          blinky();
           msg_device = ""; //Why clear value
         }
     }
