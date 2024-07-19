@@ -290,6 +290,7 @@ void reconnect() {
       Serial.println(" try again in 5 seconds");
       delay(5000);
       if (client.state() ==  -2){
+        Serial.print("network failed -> try to connect default wifi");
         resetWiFiConfig();
       }
     }
