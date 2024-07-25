@@ -6,53 +6,59 @@
 #include <AsyncTCP.h>
 #include <AsyncElegantOTA.h>
 
+// Upload SSID and Password that were saved.
+String ssid, password;
+
+// check status of ESP32 is whether an access point or not
+bool result = 0; 
+
+// define SSID and Password for Access Point
+const char* apSSID = APSSID ;
+const char* apPassword = APPASSWORD ;
 
 // define iTSD port at 26, 22 as RX, TX respectively
 // use for ESP32 communicates with iTSD
 const int RXD1 = MYRXD1 ;
 const int TXD1 = MYTXD1 ;
 
-//Switch for deleting password of WiFi
+// Switch for deleting password of WiFi 
 const int resetsw = MYSWITCH ;
-const char* Topic = MYTOPIC ;
-const char* clientid = MYCLIENTID ;
-
-//check status of ESP32 is whether an access point  or not
-bool result = 0; 
-
-// Upload SSID and Password that were saved.
-String ssid, password;
-
-String buff="";
-
-//define SSID and Password for Access Point
-const char* apSSID = APSSID ;
-const char* apPassword = APPASSWORD ;
-
-//resetswitch for reseting wifi to be default value
+// resetswitch for reseting wifi to be default value
 const unsigned long holdtime = 3000 ;
 bool buttonstate = LOW ;
 bool lastbuttonstate = LOW ;
 unsigned long buttonpresstime = 0 ;
 
+// default state of iTSD
+int state = 1;
 
+// default time to send command to iTSD
+long lastMsg = 0;
+long lastMsg2 = 0;
+
+// MQTT configuration *******************************************************
 // HIVEMQ server >> Nay
 const char *mqtt_server = MQTTSERVER ; // free broker test
 const char *mqtt_username = MQTTUSERNAME ;
 const char *mqtt_password = MQTTPASSWORD ;
 const int mqtt_port = MQTTPORT ;
 
-// Set your Static IP address
-//IPAddress local_IP(192, 168, 1, 127);
-//Set your Gateway IP address
-//IPAddress gateway(192, 168, 1, 1);
-// Set your Subnet Mask
-//IPAddress subnet(255, 255, 255, 0);
+const char* Topic_sub = MYTOPICSUB ;
+const char* Topic_pub = MYTOPICPUB ;
+const char* clientid = MYCLIENTID ;
 
-//build webserver
+// create wifi client: Use WiFi to be the network for Client connect to Server
+// WiFiClient espClient;
+WiFiClientSecure espClient;
+
+// create PubSubClient 
+PubSubClient client(espClient);
+// MQTT configuration ********************************************************
+
+// build webserver
 AsyncWebServer server(80);
 
-//HTML Form for getting SSID and Password 
+// HTML Form for getting SSID and Password 
 const char* htmlForm = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -127,20 +133,6 @@ const char* htmlForm = R"rawliteral(
 </html>
 )rawliteral";
 
-int state = 1;
-
-//create wifi client: Use WiFi to be the network for Client connect to Server
-//WiFiClient espClient;
-WiFiClientSecure espClient;
-
-//create PubSubClient 
-PubSubClient client(espClient);
-
-
-
-long lastMsg = 0;
-long lastMsg2 = 0;
-
 
 // HiveMQ Cloud Let's Encrypt CA certificate
 static const char *root_ca PROGMEM = R"EOF(
@@ -203,24 +195,22 @@ KPpdzvvtTnOPlC7SQZSYmdunr3Bf9b77AiC/ZidstK36dRILKz7OA54=
   }
  }
 
-//If disconnected WiFi
+// If disconnected WiFi
  void accesspoint(){
     if (WiFi.status() != WL_CONNECTED) {
     // Turn ESP32 to be Access Point
-    result = WiFi.softAP(apSSID, apPassword);
+      result = WiFi.softAP(apSSID, apPassword);
+    }
     if(result) {
       Serial.println("Access Point Started");
-    } else {
+      //Check IP Address of Access Point
+      IPAddress IP = WiFi.softAPIP();
+      Serial.print("AP IP address: ");
+      Serial.println(IP);
+    } else{
       Serial.println("Access Point Failed");
     }
-
-    //Check IP Address of Access Point
-    IPAddress IP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(IP);
-    String apIpAddress = "AP IP address: " + IP.toString();
   }
-}
 
 //Function for save SSID and Password of WiFi to store them in SOIFFS
 void saveWiFiConfig(String ssid, String password) {
@@ -275,12 +265,12 @@ void reconnect() {
     if (client.connect(clientid, mqtt_username, mqtt_password))
     {
       Serial.println("connected");
-      client.subscribe(Topic);
-      if (client.subscribe(Topic)) {
+      client.subscribe(Topic_sub);
+      if (client.subscribe(Topic_sub)) {
        Serial.println("Subscription successful");
       } else {
          Serial.println("Subscription failed");
-}
+      }
     } 
     else
      {
@@ -290,8 +280,8 @@ void reconnect() {
       Serial.println(" try again in 5 seconds");
       delay(5000);
       if (client.state() ==  -2){
-        Serial.print("network failed -> try to connect default wifi");
-        resetWiFiConfig();
+        Serial.print("network failed -> try to connect wifi");
+        setup_wifi();
       }
     }
   }
@@ -300,7 +290,9 @@ void reconnect() {
 // callback function for topic subscription
 void callback(char *topic, byte *payload, unsigned int length) {
     String dataIn;  
-    Serial.println("Topic: ");
+
+    Serial.println("trigger !!!");
+    Serial.print("Topic: ");
     Serial.println(topic);
     for (int i = 0; i < length; i++) 
     {
@@ -309,40 +301,36 @@ void callback(char *topic, byte *payload, unsigned int length) {
     }
     
     Serial.println("dataIn: " + dataIn);
-    if (String(topic) == Topic) { 
-      Serial.println("trigger !!!");
-      Serial.println(dataIn);
 
-      if (dataIn == "auto")
-      {
-        state = 1;
-        Serial.print("state change to => ");
-        Serial.println(state);
+    if (dataIn == "auto")
+    {
+      state = 1;
+      Serial.print("state change to => ");
+      Serial.println(state);
         
-      } 
-      else if (dataIn == "ch1")
-      {
-        state = 3;
-        Serial.print("state change to => ");
-        Serial.println(state);
+    } 
+    else if (dataIn == "ch1")
+    {
+      state = 3;
+      Serial.print("state change to => ");
+      Serial.println(state);
         
-      } 
-      else 
-      {
+    } 
+    else 
+    {
         state = 0;
         Serial.print("state change to => ");
         Serial.println(state);
-      }
-
-      if (state == 0)
-      {
-        Serial1.print(dataIn + "\r");
-      }
-
     }
+
+    if (state == 0)
+      {
+       Serial1.print(dataIn + "\r");
+      }
+    
 }
 
-  void blinky() {
+void blinky() {
   digitalWrite(2 , HIGH);
   delay(500);
   digitalWrite(2 , LOW);
@@ -354,6 +342,13 @@ void callback(char *topic, byte *payload, unsigned int length) {
 
 //setup()
 void setup() {
+
+  // set LED blink
+  pinMode(2 , OUTPUT);
+
+  // set pin resetsw to be pin for input
+  pinMode(resetsw , INPUT);
+
   //initialize serial communication at 115200 kB/s
   Serial.begin(115200);
 
@@ -368,16 +363,20 @@ void setup() {
     Serial.println("An error occurred while mounting SPIFFS");
     return;
   }
-
   
+  // get value of ssid and password from SPIFFS 
   loadWiFiConfig(ssid, password);
-
  
   setup_wifi();
 
   accesspoint();
-  
 
+  // connecting to a mqtt broker
+  espClient.setCACert(root_ca); // sent CER to server // 
+  client.setServer(mqtt_server, mqtt_port); // set server
+  client.setCallback(callback); // set trigger function when topic is published
+  client.subscribe(Topic_sub);
+  
   // Received SSID and Password via filling the form
   server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){ // A server listens to http request and then respond with the http response.
     String ssid = request->getParam("ssid")->value();
@@ -402,21 +401,6 @@ void setup() {
   AsyncElegantOTA.begin(&server);    // Start ElegantOTA
   // Start Server
   server.begin();
-
-
-  // set LED blink
-  pinMode(2 , OUTPUT);
-  pinMode(resetsw , INPUT);
-
-  blinky();
-
-  
-  //connecting to a mqtt broker
-  espClient.setCACert(root_ca); // sent CER to server // 
-  client.setServer(mqtt_server, mqtt_port); // set server
-  client.setCallback(callback); // set trigger function when topic is published
-  client.subscribe(Topic);
-
   
   Serial.print("Current state: ");
   Serial.println(state);
@@ -497,7 +481,7 @@ void loop() {
         {
           msg_device.trim();
           Serial.println(msg_device);
-          client.publish("oasis1/id1/itsd1/temp", msg_device.c_str()); // c_str = C-Style String
+          client.publish(MYTOPICPUB, msg_device.c_str()); // c_str = C-Style String
           blinky();
           msg_device = ""; //Why clear value
         }
@@ -522,7 +506,6 @@ void loop() {
             delay(100); 
   }
 
-  //delay(500);
 
 }
 
