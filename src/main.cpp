@@ -212,7 +212,7 @@ KPpdzvvtTnOPlC7SQZSYmdunr3Bf9b77AiC/ZidstK36dRILKz7OA54=
     }
   }
 
-//Function for save SSID and Password of WiFi to store them in SOIFFS
+// Function for save SSID and Password of WiFi to store them in SOIFFS
 void saveWiFiConfig(String ssid, String password) {
   File file = SPIFFS.open("/wifi_config.txt", FILE_WRITE);
   if (file) {
@@ -225,7 +225,7 @@ void saveWiFiConfig(String ssid, String password) {
   }
 }
 
-//Function for upload WiFi SSID and Password from SPIFFS
+// Function for upload WiFi SSID and Password from SPIFFS
 void loadWiFiConfig(String &ssid, String &password) {
   File file = SPIFFS.open("/wifi_config.txt", FILE_READ);
   if (file) {
@@ -240,7 +240,7 @@ void loadWiFiConfig(String &ssid, String &password) {
   }
 }
 
-//Function for deleting SSID and Password of from SPIFFS
+// Function for deleting SSID and Password of from SPIFFS
 void resetWiFiConfig() {
   SPIFFS.remove("/wifi_config.txt");
   File file = SPIFFS.open("/wifi_config.txt", FILE_WRITE);
@@ -257,7 +257,7 @@ void resetWiFiConfig() {
 }
 
 
-//Function to reconnect if disconnected from the server
+// Function to reconnect if disconnected from the server
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -340,7 +340,7 @@ void blinky() {
 }
 
 
-//setup()
+// setup()
 void setup() {
 
   // set LED blink
@@ -349,10 +349,10 @@ void setup() {
   // set pin resetsw to be pin for input
   pinMode(resetsw , INPUT);
 
-  //initialize serial communication at 115200 kB/s
+  // initialize serial communication at 115200 kB/s
   Serial.begin(115200);
 
-  //initialize iTSD communication at 9600 kB/s
+  // initialize iTSD communication at 9600 kB/s
   Serial1.begin(9600, SERIAL_8N1, RXD1, TXD1);
 
   // Set the ESP32 to be both an access point and a station
@@ -411,10 +411,10 @@ void setup() {
 }
 
 
-//loop()
+// loop()
 void loop() {
 
-  //Press resetsw to reset wifi network to be default value
+  // Press resetsw to reset wifi network to be default value
   buttonstate = digitalRead(resetsw);
 
   if(buttonstate == HIGH && lastbuttonstate == LOW){
@@ -435,7 +435,7 @@ void loop() {
 
   if (!client.connected()) 
   {
-    //reconnect to MQTT broker if not connected
+    // reconnect to MQTT broker if not connected
     reconnect();
   }
   client.loop();
@@ -463,8 +463,7 @@ void loop() {
       Serial.println("state: "+ String(state));
     }
   }
-
- 
+  
   if (now - lastMsg > 100) 
   {
     lastMsg = now;
@@ -483,7 +482,7 @@ void loop() {
           Serial.println(msg_device);
           client.publish(MYTOPICPUB, msg_device.c_str()); // c_str = C-Style String
           blinky();
-          msg_device = ""; //Why clear value
+          msg_device = ""; // have = not have
         }
     }
 
@@ -493,14 +492,14 @@ void loop() {
   { 
   
             String db = Serial.readStringUntil('\r');
-            if (db.substring(0,3) == "pub") //Checks if the first three characters of the string db are "pub". If they are, the following code block is executed.
+            if (db.substring(0,3) == "pub") // Checks if the first three characters of the string db are "pub". If they are, the following code block is executed.
             {
-            db.remove(0,3); //Removes the first three characters from the string db.
+            db.remove(0,3); // Removes the first three characters from the string db.
               Serial.print("trigger test public cmd => ");
               Serial.println(db);
               Serial1.print(db + "\r");
               blinky();
-              Serial.flush(); //Waits for the transmission of outgoing serial data to complete. (Prior to Arduino 1.0, this instead removed any buffered incoming serial data.)
+              Serial.flush(); // Waits for the transmission of outgoing serial data to complete. (Prior to Arduino 1.0, this instead removed any buffered incoming serial data.)
               db = "";
             }
             delay(100); 
