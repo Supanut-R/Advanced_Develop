@@ -451,7 +451,7 @@ void loop() {
      {
       lastMsg2 = now2;
       Serial1.println(":i");
-      Serial.println("state: "+ String(state));
+      Serial1.flush();
     }
   } 
   else if (state == 3) 
@@ -460,7 +460,7 @@ void loop() {
     {
       lastMsg2 = now2;
       Serial1.println(":dA");
-      Serial.println("state: "+ String(state));
+      Serial1.flush();  
     }
   }
   
@@ -479,10 +479,11 @@ void loop() {
         else if (msg_device.length() != 0) 
         {
           msg_device.trim();
+          msg_device = "state:" + String(state) + " " + msg_device;
           Serial.println(msg_device);
           client.publish(MYTOPICPUB, msg_device.c_str()); // c_str = C-Style String
           blinky();
-          msg_device = ""; // have = not have
+          //msg_device = ""; // have = not have
         }
     }
 
